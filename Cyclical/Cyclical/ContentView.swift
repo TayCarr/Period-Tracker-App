@@ -14,9 +14,53 @@ struct CalendarView: View { //defines a new SwiftUI view called CalendarView
     //@state means that if currentDate changes, the view automatically updates
     var body: some View { //body property defines what appears on screen - the UI layout of the view
         VStack { //"Vertical Stack" it lays out it its child views (text, grids etc) vertically
-            Text(monthYearString(from: currentDate))//displays the name of the current month and year
-            //"monthYearString(from:)" function formats the date into that readable form
-                .font(.title).padding()//sets font size/style for text and padding adds space around the text so it isnt cramped against other elements
+            //Header with month, year and nav buttons
+            HStack{
+                Button(action: {
+                    //go to previous month
+                    if let previousMonth = calendar.date(byAdding: .month, value: -1, to: currentDate){
+                        currentDate = previousMonth
+                    }
+                }){
+                    Image(systemName: "chevron.left")
+                        .font(.title2)
+                        .padding(.horizontal)
+                }
+                Spacer()
+                
+                Text(monthYearString(from: currentDate))//displays the name of the current month and year
+                //"monthYearString(from:)" function formats the date into that readable form
+                    .font(.title).bold()//sets font size/style for text and padding adds space around the text so it isnt cramped against other elements
+                Spacer()
+                
+                Button(action: {
+                    //go to future month
+                    if let previousMonth = calendar.date(byAdding: .month, value: 1, to: currentDate){
+                        currentDate = previousMonth
+                    }
+                }){
+                    Image(systemName: "chevron.right")
+                        .font(.title2)
+                        .padding(.horizontal)
+                }
+            }
+            .padding(.top)
+            
+            Divider()
+                .padding(.bottom, 5)
+            
+            //weekday labels
+            let weedaySymbols = calendar.shortWeekdaySymbols
+            HStack{
+                ForEach(weedaySymbols, id: \.self) { day in
+                    Text(day.prefix(2)) //Su, Mo, etc
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                        .frame(maxWidth: .infinity)
+                        
+                }
+            }
+            //calendar grid
             let days = generateDays(for: currentDate) //calls the helper func generateDays to get an array of all the dates in the current month, this is used to build the calendar grid
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7)) { //creates a grid layout with 7 flexible columns, one for each day of the week
                 //LazyVGrid automatically arranges its child vies into rows and columns
@@ -29,9 +73,12 @@ struct CalendarView: View { //defines a new SwiftUI view called CalendarView
                 }
                 
             }
+            Spacer() //pushes to the top
         }
         .padding() //padding around the entire calendar for spacing between screen edges
     }
+    //helper functions
+    
     //helper function that returns a string "MONTH YEAR" for given date
     func monthYearString(from date: Date) -> String {
         let formatter = DateFormatter() //convert date to readable format
@@ -44,6 +91,12 @@ struct CalendarView: View { //defines a new SwiftUI view called CalendarView
         guard let monthInterval = calendar.dateInterval(of: .month, for: date) else { return [] } //returns the start and end of the month that date belongs to
         var days: [Date] = []
         var day = monthInterval.start
+        //adjust for weekday alignment
+        let firstDayWeekday = calendar.component(.weekday, from: monthInterval.start)
+        let weekdayOffset = (firstDayWeekday - calendar.firstWeekday + 7) % 7
+        for _ in 0..<weekdayOffset {
+            days.append(Date.distantPast)//placeholders for empty cells
+        }
         while day < monthInterval.end { //loops through everyday from the first to the last day of the month
             days.append(day)
             day = calendar.date(byAdding: .day, value: 1, to: day)! //adds 1 day each iteration to move to the next date , appends each day to the array
@@ -53,6 +106,7 @@ struct CalendarView: View { //defines a new SwiftUI view called CalendarView
     
     //extracts just the day number from a Date
     func dayString(from date: Date) -> String {
+        if date == Date.distantPast { return " " } //empty cell
         let day = calendar.component(.day, from: date)
         return "\(day)"
     }
